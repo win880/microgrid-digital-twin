@@ -1,0 +1,59 @@
+
+name: Build iOS Universal Lib
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+concurrency:
+  group: ios-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt,clippy
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Cache target dir
+        uses: actions/cache@v4
+        with:
+          path: |
+            target
+          key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Add iOS Rust targets
+        run: |
+          rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios-sim
+
+      - name: Install cbindgen
+        run: cargo install cbindgen
+
+      - name: Make scripts executable
+        run: chmod +x scripts/build_ios_universal.sh
+
+      - name: Build iOS universal lib
+        run: ./scripts/build_ios_universal.sh
+
+      - name: Upload artifacts (.a and header)
+        uses: actions/upload-artifact@v4
+        with:
+          name: microgrid-ios-artifacts
+          path: |
+            ios/MicrogridApp/RustBridge/libmicrogrid.a
+            ios/MicrogridApp/RustBridge/microgrid_ffi.h

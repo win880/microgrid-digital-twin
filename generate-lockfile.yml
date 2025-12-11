@@ -1,0 +1,3 @@
+git add .github/workflows/generate-lockfile.yml
+git commit -m "ci: generate pnpm-lock.yaml via workflow"
+git push origin fix/prismjs-1.30.0
